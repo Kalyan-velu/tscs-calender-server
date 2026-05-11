@@ -1,5 +1,6 @@
 // src/schemas/response.schema.ts
 import {z} from '@hono/zod-openapi'
+import type {ContentfulStatusCode} from "hono/utils/http-status";
 
 export const successSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
   z.object({
@@ -14,7 +15,7 @@ export const errorSchema = z.object({
   }),
 })
 
-export const commonErrorResponses = {
+export const commonErrorResponses= {
   400: {
     description: 'Bad request',
     content: { 'application/json': { schema: errorSchema } },
@@ -27,4 +28,4 @@ export const commonErrorResponses = {
     description: 'Internal server error',
     content: { 'application/json': { schema: errorSchema } },
   },
-}
+} as unknown as Record<ContentfulStatusCode, { description: string; content: Record<string, { schema: z.ZodTypeAny }> }>

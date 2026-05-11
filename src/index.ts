@@ -3,7 +3,7 @@ import {swaggerUI} from '@hono/swagger-ui'
 import {serve} from '@hono/node-server'
 import {logger} from "hono/logger"
 import {cors} from "hono/cors"
-import {batches} from "./routes/batch.route.js"
+import {Batches} from "./routes/batch.route.js"
 import {events} from "./routes/event.route.js"
 
 const app = new OpenAPIHono()
@@ -11,8 +11,8 @@ const app = new OpenAPIHono()
 app.use('*', logger())
 app.use('*', cors({ origin: "http://localhost:8080" }))
 
-app.route('/batches', batches)
-app.route('/events', events)
+app.route('/batch', Batches)
+app.route('/event', events)
 
 // Auto-generated spec from all registered routes
 app.doc('/doc', {

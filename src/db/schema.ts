@@ -1,4 +1,4 @@
-import {integer, pgTable, text, timestamp, uuid} from 'drizzle-orm/pg-core';
+import {integer, pgTable, primaryKey, text, timestamp, uuid} from 'drizzle-orm/pg-core';
 import {relations} from 'drizzle-orm';
 
 // Batches (e.g. "APSC 2025 Group A")
@@ -23,7 +23,9 @@ export const event = pgTable('event', {
 export const eventBatch = pgTable('event_batch', {
   eventId: uuid('event_id').notNull().references(() => event.id, { onDelete: 'cascade' }),
   batchId: uuid('batch_id').notNull().references(() => batch.id, { onDelete: 'cascade' }),
-});
+},(table)=>[
+  primaryKey({columns:[table.eventId,table.batchId]})
+]);
 
 // Students
 export const student = pgTable('student', {

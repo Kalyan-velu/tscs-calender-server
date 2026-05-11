@@ -7,6 +7,9 @@
 .idea/workspace.xml
 .idea/usage.statistics.xml
 .idea/shelf
+#build
+dist
+drizzle
 
 # deps
 node_modules/
@@ -26,3 +29,4 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+/.idea/
