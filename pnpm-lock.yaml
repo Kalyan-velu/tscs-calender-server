@@ -32,6 +32,9 @@ importers:
       hono:
         specifier: ^4.12.18
         version: 4.12.18
+      htmx.org:
+        specifier: 2.0.10
+        version: 2.0.10
       is-deflate:
         specifier: ^1.0.0
         version: 1.0.0
@@ -69,6 +72,9 @@ importers:
       tsx:
         specifier: ^4.7.1
         version: 4.21.0
+      typed-htmx:
+        specifier: ^0.3.1
+        version: 0.3.1
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -704,6 +710,9 @@ packages:
     resolution: {integrity: sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==}
     engines: {node: '>=16.9.0'}
 
+  htmx.org@2.0.10:
+    resolution: {integrity: sha512-kdeJe7ZVwaS6QMz/ebBIVtZdpwen6L0OQ5GOhPV9MKBb196TCZeZu4yA7ZIQsaLKv7EpXz+So7KSXNuHXhj7Cw==}
+
   is-deflate@1.0.0:
     resolution: {integrity: sha512-YDoFpuZWu1VRXlsnlYMzKyVRITXj7Ej/V9gXQ2/pAe7X1J7M/RNOqaIYi6qUn+B7nGyB9pDXrv02dsB58d2ZAQ==}
 
@@ -785,6 +794,14 @@ packages:
     resolution: {integrity: sha512-5C1sg4USs1lfG0GFb2RLXsdpXqBSEhAaA/0kPL01wxzpMqLILNxIxIOKiILz+cdg/pLnOUxFYOR5yhHU666wbw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
+
+  typed-html@3.0.1:
+    resolution: {integrity: sha512-JKCM9zTfPDuPqQqdGZBWSEiItShliKkBFg5c6yOR8zth43v763XkAzTWaOlVqc0Y6p9ee8AaAbipGfUnCsYZUA==}
+    engines: {node: '>=12'}
+
+  typed-htmx@0.3.1:
+    resolution: {integrity: sha512-6WSPsukTIOEMsVbx5wzgVSvldLmgBUVcFIm2vJlBpRPtcbDOGC5y1IYrCWNX1yUlNsrv1Ngcw4gGM8jsPyNV7w==}
+    engines: {node: '>=12'}
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -1192,6 +1209,8 @@ snapshots:
 
   hono@4.12.18: {}
 
+  htmx.org@2.0.10: {}
+
   is-deflate@1.0.0: {}
 
   is-gzip@2.0.0: {}
@@ -1264,6 +1283,12 @@ snapshots:
       get-tsconfig: 4.14.0
     optionalDependencies:
       fsevents: 2.3.3
+
+  typed-html@3.0.1: {}
+
+  typed-htmx@0.3.1:
+    dependencies:
+      typed-html: 3.0.1
 
   typescript@5.9.3: {}
 

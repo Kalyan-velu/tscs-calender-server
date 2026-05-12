@@ -5,11 +5,14 @@
     "strict": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
+
     "types": [
       "node"
     ],
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
+    // If your frontend framework prescribes a JSX source, change it here.
+    // In this example, we will use typed-htmx's own text renderer based on typed-html.
+    "jsxImportSource": "typed-htmx/typed-html",
     "outDir": "./dist"
   },
   "exclude": ["node_modules"]
