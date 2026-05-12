@@ -103,5 +103,25 @@ export const eventRepository = {
   },
   deleteEventById: async (id: string) => {
     return db.delete(event).where(eq(event.id, id));
+  },
+  update: async (id: string, data: Partial<NewEvent>, batchIds?: string[]) => {
+    return db.transaction(async (tx) => {
+      let updatedEvent;
+      if (Object.keys(data).length > 0) {
+        const [updated] = await tx.update(event).set(data).where(eq(event.id, id)).returning();
+        updatedEvent = updated;
+      }
+      
+      if (batchIds !== undefined) {
+        const uniqueBatchIds = [...new Set(batchIds)];
+        await tx.delete(eventBatch).where(eq(eventBatch.eventId, id));
+        if (uniqueBatchIds.length > 0) {
+          await tx.insert(eventBatch).values(
+            uniqueBatchIds.map(batchId => ({ eventId: id, batchId }))
+          );
+        }
+      }
+      return eventRepository.findById(id);
+    });
   }
 }

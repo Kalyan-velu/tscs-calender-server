@@ -32,9 +32,6 @@ importers:
       hono:
         specifier: ^4.12.18
         version: 4.12.18
-      htmx.org:
-        specifier: 2.0.10
-        version: 2.0.10
       is-deflate:
         specifier: ^1.0.0
         version: 1.0.0
@@ -710,9 +707,6 @@ packages:
     resolution: {integrity: sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==}
     engines: {node: '>=16.9.0'}
 
-  htmx.org@2.0.10:
-    resolution: {integrity: sha512-kdeJe7ZVwaS6QMz/ebBIVtZdpwen6L0OQ5GOhPV9MKBb196TCZeZu4yA7ZIQsaLKv7EpXz+So7KSXNuHXhj7Cw==}
-
   is-deflate@1.0.0:
     resolution: {integrity: sha512-YDoFpuZWu1VRXlsnlYMzKyVRITXj7Ej/V9gXQ2/pAe7X1J7M/RNOqaIYi6qUn+B7nGyB9pDXrv02dsB58d2ZAQ==}
 
@@ -1208,8 +1202,6 @@ snapshots:
       resolve-pkg-maps: 1.0.0
 
   hono@4.12.18: {}
-
-  htmx.org@2.0.10: {}
 
   is-deflate@1.0.0: {}
 

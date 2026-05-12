@@ -5,6 +5,8 @@ import {logger} from "hono/logger"
 import {cors} from "hono/cors"
 import {Batches} from "./routes/batch.route.js"
 import {events} from "./routes/event.route.js"
+import {eventsUi} from "./routes/ui/events.ui.js"
+import {batchesUi} from "./routes/ui/batches.ui.js"
 
 const app = new OpenAPIHono()
 
@@ -13,6 +15,8 @@ app.use('*', cors({ origin: "http://localhost:8080" }))
 
 app.route('/batch', Batches)
 app.route('/event', events)
+app.route('/ui/events', eventsUi)
+app.route('/ui/batches', batchesUi)
 
 // Auto-generated spec from all registered routes
 app.doc('/doc', {
