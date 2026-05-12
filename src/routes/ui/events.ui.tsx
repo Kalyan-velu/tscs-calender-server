@@ -310,7 +310,7 @@ const EventModal = ({
             </div>
             <div class='bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-2xl border-t border-gray-100'>
               <button
-                onClick="setTimeout(() => this.closest('#event-modal').remove(), 200)"
+                {...{onclick : "setTimeout(() => this.closest('#event-modal').remove(), 200)"}}
                 type='submit'
                 class='w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors'
               >
