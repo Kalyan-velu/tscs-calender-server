@@ -118,12 +118,8 @@
           "name": "event_batch_event_id_event_id_fk",
           "tableFrom": "event_batch",
           "tableTo": "event",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -131,12 +127,8 @@
           "name": "event_batch_batch_id_batch_id_fk",
           "tableFrom": "event_batch",
           "tableTo": "batch",
-          "columnsFrom": [
-            "batch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["batch_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -144,10 +136,7 @@
       "compositePrimaryKeys": {
         "event_batch_event_id_batch_id_pk": {
           "name": "event_batch_event_id_batch_id_pk",
-          "columns": [
-            "event_id",
-            "batch_id"
-          ]
+          "columns": ["event_id", "batch_id"]
         }
       },
       "uniqueConstraints": {},
@@ -204,12 +193,8 @@
           "name": "student_batch_id_batch_id_fk",
           "tableFrom": "student",
           "tableTo": "batch",
-          "columnsFrom": [
-            "batch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["batch_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -219,9 +204,7 @@
         "student_email_unique": {
           "name": "student_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},

@@ -1,13 +1,13 @@
-import isDeflate from 'is-deflate';
-import isGzip from 'is-gzip';
-import {inflate} from 'pako';
+import isDeflate from "is-deflate";
+import isGzip from "is-gzip";
+import { inflate } from "pako";
 
 class FetchError extends Error {
   method: string;
   url: RequestInfo;
   status?: number;
   statusText?: string;
-  
+
   constructor(
     message: string,
     options: {
@@ -43,10 +43,10 @@ export default async (
 ) => {
   // Create the timeout
   const controller =
-    typeof timeout === 'number' && timeout > 0 && new AbortController();
+    typeof timeout === "number" && timeout > 0 && new AbortController();
   const timer =
     controller && setTimeout(() => controller.abort(), timeout * 1000);
-  
+
   // Run the request
   let resp: Response;
   try {
@@ -56,44 +56,44 @@ export default async (
     });
   } catch (error) {
     // If the request was aborted, throw a nice error
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (error instanceof Error && error.name === "AbortError") {
       throw new FetchError(`Timed out after ${timeout}s`, {
-        method: options?.method || 'GET',
+        method: options?.method || "GET",
         url,
         cause: error,
       });
     }
-    
+
     // Otherwise, throw the original error
     throw error;
   } finally {
     // Clear the timeout
     if (timer) clearTimeout(timer);
   }
-  
+
   // Handle failures
   if (!resp.ok) {
     throw new FetchError(`${resp.status} ${resp.statusText}`, {
-      method: options?.method || 'GET',
+      method: options?.method || "GET",
       url,
       status: resp.status,
       statusText: resp.statusText,
     });
   }
-  
+
   // Get the raw data, inflate it (packages/:package/all returns double-gzip'ed data), and parse the JSON
   return resp
     .arrayBuffer()
     .then((raw) => new Uint8Array(raw))
     .then((raw) =>
       isGzip(raw) || isDeflate(raw)
-        ? inflate(raw, { to: 'string' })
-        : new TextDecoder('utf-8').decode(raw),
+        ? inflate(raw, { to: "string" })
+        : new TextDecoder("utf-8").decode(raw),
     )
     .then((text) => JSON.parse(text))
     .catch((error) => {
       throw new FetchError(error.message, {
-        method: options?.method || 'GET',
+        method: options?.method || "GET",
         url,
         status: resp.status,
         statusText: resp.statusText,

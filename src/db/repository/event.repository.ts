@@ -1,9 +1,10 @@
-import {event, eventBatch, type NewEvent} from "../schema.js";
-import {and, eq, gte, inArray, lte} from "drizzle-orm";
-import {db} from "../index.js";
+import { event, eventBatch, type NewEvent } from "../schema.js";
+import { and, eq, gte, inArray, lte } from "drizzle-orm";
+import { db } from "../index.js";
 
 const withBatchIds = async <T extends { id: string }>(events: T[]) => {
-  if (!events.length) return events.map((item) => ({ ...item, batchIds: [] as string[] }));
+  if (!events.length)
+    return events.map((item) => ({ ...item, batchIds: [] as string[] }));
 
   const links = await db
     .select({
@@ -11,7 +12,12 @@ const withBatchIds = async <T extends { id: string }>(events: T[]) => {
       batchId: eventBatch.batchId,
     })
     .from(eventBatch)
-    .where(inArray(eventBatch.eventId, events.map((item) => item.id)));
+    .where(
+      inArray(
+        eventBatch.eventId,
+        events.map((item) => item.id),
+      ),
+    );
 
   const batchIdsByEventId = new Map<string, string[]>();
   for (const link of links) {
@@ -33,10 +39,7 @@ const asWhereClause = (conditions: Array<ReturnType<typeof eq>>) => {
 };
 
 export const eventRepository = {
-  all: async (filters?: {
-    from?: Date;
-    to?: Date;
-  }) => {
+  all: async (filters?: { from?: Date; to?: Date }) => {
     const conditions = [];
 
     if (filters?.from) conditions.push(gte(event.scheduledAt, filters.from));
@@ -50,26 +53,29 @@ export const eventRepository = {
 
     return withBatchIds(foundEvents);
   },
-  findByBatchId: async (batchId: string, filters?: {
-    from?: Date;
-    to?: Date;
-  }) => {
+  findByBatchId: async (
+    batchId: string,
+    filters?: {
+      from?: Date;
+      to?: Date;
+    },
+  ) => {
     const conditions = [eq(eventBatch.batchId, batchId)];
-    
+
     if (filters?.from) conditions.push(gte(event.scheduledAt, filters.from));
-    if (filters?.to)   conditions.push(lte(event.scheduledAt, filters.to));
-    
+    if (filters?.to) conditions.push(lte(event.scheduledAt, filters.to));
+
     const rows = await db
       .select({ event })
       .from(event)
       .innerJoin(eventBatch, eq(eventBatch.eventId, event.id))
       .where(asWhereClause(conditions))
       .orderBy(event.scheduledAt);
-    
-    return withBatchIds(rows.map(r => r.event));
+
+    return withBatchIds(rows.map((r) => r.event));
   },
-  findById: async(id: string) => {
-    const [found]=await db.select().from(event).where(eq(event.id, id));
+  findById: async (id: string) => {
+    const [found] = await db.select().from(event).where(eq(event.id, id));
     if (!found) return found;
     const [eventWithBatchIds] = await withBatchIds([found]);
     return eventWithBatchIds;
@@ -80,9 +86,11 @@ export const eventRepository = {
     return db.transaction(async (tx) => {
       const [created] = await tx.insert(event).values(data).returning();
       if (uniqueBatchIds.length) {
-        await tx.insert(eventBatch).values(
-          uniqueBatchIds.map(batchId => ({ eventId: created.id, batchId }))
-        );
+        await tx
+          .insert(eventBatch)
+          .values(
+            uniqueBatchIds.map((batchId) => ({ eventId: created.id, batchId })),
+          );
       }
       return {
         ...created,
@@ -90,16 +98,22 @@ export const eventRepository = {
       };
     });
   },
-  assignToBatches:async(eventId:string, batchIds:string[])=>{
-    const foundEvent=await eventRepository.findById(eventId)
-    if (!foundEvent) throw new Error("Event not found.")
-    const uniqueBatchIds = [...new Set(batchIds)]
-    if (uniqueBatchIds.length){
-      await db.insert(eventBatch).values(
-        uniqueBatchIds.map(batchId=>({ eventId: foundEvent.id, batchId }))
-      ).onConflictDoNothing()
+  assignToBatches: async (eventId: string, batchIds: string[]) => {
+    const foundEvent = await eventRepository.findById(eventId);
+    if (!foundEvent) throw new Error("Event not found.");
+    const uniqueBatchIds = [...new Set(batchIds)];
+    if (uniqueBatchIds.length) {
+      await db
+        .insert(eventBatch)
+        .values(
+          uniqueBatchIds.map((batchId) => ({
+            eventId: foundEvent.id,
+            batchId,
+          })),
+        )
+        .onConflictDoNothing();
     }
-    return eventRepository.findById(eventId)
+    return eventRepository.findById(eventId);
   },
   deleteEventById: async (id: string) => {
     return db.delete(event).where(eq(event.id, id));
@@ -108,20 +122,26 @@ export const eventRepository = {
     return db.transaction(async (tx) => {
       let updatedEvent;
       if (Object.keys(data).length > 0) {
-        const [updated] = await tx.update(event).set(data).where(eq(event.id, id)).returning();
+        const [updated] = await tx
+          .update(event)
+          .set(data)
+          .where(eq(event.id, id))
+          .returning();
         updatedEvent = updated;
       }
-      
+
       if (batchIds !== undefined) {
         const uniqueBatchIds = [...new Set(batchIds)];
         await tx.delete(eventBatch).where(eq(eventBatch.eventId, id));
         if (uniqueBatchIds.length > 0) {
-          await tx.insert(eventBatch).values(
-            uniqueBatchIds.map(batchId => ({ eventId: id, batchId }))
-          );
+          await tx
+            .insert(eventBatch)
+            .values(
+              uniqueBatchIds.map((batchId) => ({ eventId: id, batchId })),
+            );
         }
       }
       return eventRepository.findById(id);
     });
-  }
-}
+  },
+};

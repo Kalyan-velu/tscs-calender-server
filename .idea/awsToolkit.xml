@@ -1,11 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="toolkitAccountSettings">
+    <option name="activeProfile" value="profile:PowerUserAccess-225828829792" />
     <option name="activeRegion" value="us-east-1" />
+    <option name="recentlyUsedProfiles">
+      <list>
+        <option value="profile:PowerUserAccess-225828829792" />
+        <option value="profile:d-9f67680ac0-225828829792-PowerUserAccess" />
+      </list>
+    </option>
     <option name="recentlyUsedRegions">
       <list>
         <option value="us-east-1" />
       </list>
     </option>
+  </component>
+  <component name="toolkitExplorerToolWindow">
+    <option name="selectedTab" value="Explorer" />
   </component>
 </project>
