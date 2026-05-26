@@ -1,5 +1,5 @@
-import { createRoute, z } from "@hono/zod-openapi";
-import { commonErrorResponses, successSchema } from "../response.schema.js";
+import { createRoute, z } from '@hono/zod-openapi';
+import { commonErrorResponses, successSchema } from '../response.schema.js';
 
 export const EventSchema = z.object({
   id: z.uuid(),
@@ -15,22 +15,22 @@ export const EventSchema = z.object({
 
 export const CreateEventSchema = z.object({
   title: z.string().openapi({
-    example: "Live class 1",
+    example: 'Live class 1',
   }),
   description: z.string().nullable().optional().openapi({
-    example: "Introduction class",
+    example: 'Introduction class',
   }),
   meetLink: z.string().nullable().optional().openapi({
-    example: "https://meet.google.com/abc-defg-hij",
+    example: 'https://meet.google.com/abc-defg-hij',
   }),
   scheduledAt: z.iso.datetime().openapi({
-    example: "2026-05-11T10:00:00.000Z",
+    example: '2026-05-11T10:00:00.000Z',
   }),
   durationMinutes: z.number().int().positive().openapi({
     example: 60,
   }),
   batchIds: z.array(z.uuid()).openapi({
-    example: ["550e8400-e29b-41d4-a716-446655440000"],
+    example: ['550e8400-e29b-41d4-a716-446655440000'],
   }),
 });
 
@@ -39,62 +39,62 @@ export const AssignEventBatchesSchema = z.object({
     .array(z.uuid())
     .min(1)
     .openapi({
-      example: ["550e8400-e29b-41d4-a716-446655440000"],
+      example: ['550e8400-e29b-41d4-a716-446655440000'],
     }),
 });
 
 // Routes
 export const createEventRoute = createRoute({
-  method: "post",
-  tags: ["Events"],
-  path: "/",
+  method: 'post',
+  tags: ['Events'],
+  path: '/',
   request: {
     body: {
-      content: { "application/json": { schema: CreateEventSchema } },
+      content: { 'application/json': { schema: CreateEventSchema } },
       required: true,
     },
   },
   responses: {
     ...commonErrorResponses,
     201: {
-      description: "Event created",
+      description: 'Event created',
       content: {
-        "application/json": { schema: successSchema(EventSchema) },
+        'application/json': { schema: successSchema(EventSchema) },
       },
     },
   },
 });
 
 export const deleteEventRequest = createRoute({
-  method: "delete",
-  path: "/{eventId}",
-  tags: ["Events"],
+  method: 'delete',
+  path: '/{eventId}',
+  tags: ['Events'],
   request: {
     params: z.object({
       eventId: z.string().openapi({
         param: {
-          name: "eventId",
-          in: "path",
+          name: 'eventId',
+          in: 'path',
         },
-        example: "event-id",
+        example: 'event-id',
       }),
     }),
   },
   responses: {
     ...commonErrorResponses,
     200: {
-      description: "Event deleted",
+      description: 'Event deleted',
       content: {
-        "application/json": { schema: successSchema(z.boolean()) },
+        'application/json': { schema: successSchema(z.boolean()) },
       },
     },
   },
 });
 
 export const listEventsRequest = createRoute({
-  method: "get",
-  tags: ["Events"],
-  path: "/",
+  method: 'get',
+  tags: ['Events'],
+  path: '/',
   request: {
     query: z.object({
       batchId: z.uuid().optional(),
@@ -105,65 +105,65 @@ export const listEventsRequest = createRoute({
   responses: {
     ...commonErrorResponses,
     200: {
-      description: "List of events",
+      description: 'List of events',
       content: {
-        "application/json": { schema: successSchema(z.array(EventSchema)) },
+        'application/json': { schema: successSchema(z.array(EventSchema)) },
       },
     },
   },
 });
 
 export const getEventByIdRequest = createRoute({
-  method: "get",
-  path: "/{eventId}",
-  tags: ["Events"],
+  method: 'get',
+  path: '/{eventId}',
+  tags: ['Events'],
   request: {
     params: z.object({
       eventId: z.string().openapi({
         param: {
-          name: "eventId",
-          in: "path",
+          name: 'eventId',
+          in: 'path',
         },
-        example: "event-id",
+        example: 'event-id',
       }),
     }),
   },
   responses: {
     ...commonErrorResponses,
     200: {
-      description: "Event details",
+      description: 'Event details',
       content: {
-        "application/json": { schema: successSchema(EventSchema) },
+        'application/json': { schema: successSchema(EventSchema) },
       },
     },
   },
 });
 
 export const assignEventBatchesRequest = createRoute({
-  method: "post",
-  path: "/{eventId}/batches",
-  tags: ["Events"],
+  method: 'post',
+  path: '/{eventId}/batches',
+  tags: ['Events'],
   request: {
     params: z.object({
       eventId: z.string().openapi({
         param: {
-          name: "eventId",
-          in: "path",
+          name: 'eventId',
+          in: 'path',
         },
-        example: "event-id",
+        example: 'event-id',
       }),
     }),
     body: {
-      content: { "application/json": { schema: AssignEventBatchesSchema } },
+      content: { 'application/json': { schema: AssignEventBatchesSchema } },
       required: true,
     },
   },
   responses: {
     ...commonErrorResponses,
     200: {
-      description: "Event batches assigned",
+      description: 'Event batches assigned',
       content: {
-        "application/json": { schema: successSchema(EventSchema) },
+        'application/json': { schema: successSchema(EventSchema) },
       },
     },
   },

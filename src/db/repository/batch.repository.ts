@@ -1,7 +1,7 @@
-import { db } from "../index.js";
-import { batch, type NewBatch } from "../schema.js";
-import { eq, inArray } from "drizzle-orm";
-import { eventRepository } from "./event.repository.js";
+import { db } from '../index.js';
+import { batch, type NewBatch } from '../schema.js';
+import { eq, inArray } from 'drizzle-orm';
+import { eventRepository } from './event.repository.js';
 
 export const batchRepository = {
   create: async (data: NewBatch) => {

@@ -1,5 +1,5 @@
-import type { Context } from "hono";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
+import type { Context } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 export const ok = <T>(
   c: Context,

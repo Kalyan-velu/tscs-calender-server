@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import crypto from "node:crypto";
 import { batchRepository } from "../../db/repository/batch.repository.js";
 import { eventRepository } from "../../db/repository/event.repository.js";
 import { formatTime } from "../../utils/time-format.js";
@@ -8,7 +9,6 @@ export const eventsUi = new Hono();
 
 const formatDate = (date: Date) => {
   const d = new Date(date);
-  console.log(d);
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
@@ -19,36 +19,127 @@ const EventList = ({ events, date }: { events: any[]; date: string }) => {
     return (
       <div
         id="event-list"
-        class="mt-8 text-center text-gray-500 py-12 bg-white rounded-xl shadow-sm border border-gray-100"
+        class="mt-8 text-center text-slate-500 py-16 bg-white rounded-2xl border border-slate-100 shadow-premium"
       >
-        No events scheduled for this day.
+        <div class="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3 text-slate-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <p class="text-slate-800 font-medium">No events scheduled for this day</p>
+        <p class="text-sm text-slate-400 mt-1">Click the button above to schedule your first class or meeting.</p>
       </div>
     );
   }
 
   return (
-    <div id="event-list" class="mt-8 flex flex-col gap-3">
+    <div id="event-list" class="mt-8 flex flex-col gap-4">
       {events.map((ev) => (
         <div
-          class="flex items-center p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
+          class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl shadow-premium border border-slate-100 hover:shadow-premium-hover hover:border-brand-300 transition-all duration-300 cursor-pointer group gap-4 relative overflow-hidden"
           hx-get={`/ui/events/form/${ev.id}`}
           hx-target="#modal-container"
         >
-          <div class="w-24 font-semibold text-gray-700 flex-shrink-0 text-lg">
-            {formatTime(new Date(ev.scheduledAt))}
+          {/* Subtle brand color accent bar on left */}
+          <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-brand-500"></div>
+
+          <div class="flex items-start gap-4 pl-2 flex-grow">
+            {/* Time Display */}
+            <div class="w-20 flex-shrink-0 pt-0.5">
+              <div class="font-extrabold text-[16px] text-brand-600 leading-tight">
+                {formatTime(new Date(ev.scheduledAt))}
+              </div>
+              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+                {ev.durationMinutes} min
+              </div>
+            </div>
+
+            {/* Event Info */}
+            <div class="flex-grow pl-4 border-l border-slate-150">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="text-[16px] font-bold text-slate-800 group-hover:text-brand-600 transition-colors leading-snug">
+                  {ev.title}
+                </h3>
+                {ev.groupId && (
+                  <span class="inline-flex items-center gap-1 text-[9px] font-extrabold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md border border-brand-100 uppercase tracking-wider">
+                    <svg class="w-2.5 h-2.5 animate-[spin_10s_linear_infinite]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.79" />
+                    </svg>
+                    Recurring
+                  </span>
+                )}
+              </div>
+              {ev.description && (
+                <p class="text-sm text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                  {ev.description}
+                </p>
+              )}
+
+              {/* Batches Tags */}
+              {ev.batchIds && ev.batchIds.length > 0 && (
+                <div class="flex flex-wrap gap-1.5 mt-2.5">
+                  {ev.batchIds.map(() => (
+                    <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-slate-50 text-slate-500 rounded-md border border-slate-150">
+                      Class Group
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div class="flex-grow pl-4 border-l border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-              {ev.title}
-            </h3>
-            {ev.description && (
-              <p class="text-sm text-gray-500 mt-1 line-clamp-1">
-                {ev.description}
-              </p>
+
+          {/* Actions & Meet Link */}
+          <div class="flex items-center gap-2.5 sm:self-center pl-6 sm:pl-0">
+            {ev.meetLink && (
+              <a
+                href={ev.meetLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onclick="event.stopPropagation()"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-150 transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Join
+              </a>
             )}
-          </div>
-          <div class="flex-shrink-0 text-sm text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-            {ev.durationMinutes} min
+
+            {/* Edit Indicator */}
+            <span class="p-2 text-slate-400 group-hover:text-brand-500 rounded-xl group-hover:bg-brand-50 transition-all">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </span>
+
+            {/* Delete Event Button */}
+            {ev.groupId ? (
+              <button
+                hx-get={`/ui/events/delete-confirm/${ev.id}?date=${date}`}
+                hx-target="#modal-container"
+                onclick="event.stopPropagation()"
+                class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                title="Delete Recurring Event"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                hx-delete={`/ui/events/${ev.id}?date=${date}`}
+                hx-confirm="Are you sure you want to delete this event?"
+                hx-target="#event-list"
+                hx-swap="outerHTML"
+                onclick="event.stopPropagation()"
+                class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                title="Delete Event"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       ))}
@@ -67,7 +158,7 @@ const EventModal = ({
   date: string;
 }) => {
   const isEdit = !!event;
-  const title = isEdit ? "Edit Event" : "Create Event";
+  const title = isEdit ? "Edit Event Details" : "Schedule New Event";
   const actionPath = isEdit ? `/ui/events/${event.id}` : "/ui/events";
   const method = isEdit ? "hx-put" : "hx-post";
 
@@ -79,197 +170,329 @@ const EventModal = ({
   return (
     <div
       id="event-modal"
-      class="fixed inset-0 z-50 overflow-y-auto"
-      aria-labelledby="modal-title"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/40 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      x-data="{ show: true }"
-      x-show="show"
     >
-      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        {/* Backdrop */}
-        <div
-          class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          aria-hidden="true"
-          x-show="show"
-          x-transition:enter="ease-out duration-300"
-          x-transition:enter-start="opacity-0"
-          x-transition:enter-end="opacity-100"
-          x-transition:leave="ease-in duration-200"
-          x-transition:leave-start="opacity-100"
-          x-transition:leave-end="opacity-0"
-          {...{ onclick: "document.getElementById('event-modal').remove()" }}
-        ></div>
-
-        <span
-          class="hidden sm:inline-block sm:align-middle sm:h-screen"
-          aria-hidden="true"
-        >
-          &#8203;
-        </span>
-
-        {/* Modal Panel */}
-        <div
-          class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-100"
-          x-show="show"
-          x-transition:enter="ease-out duration-300"
-          x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-          x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-          x-transition:leave="ease-in duration-200"
-          x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-          x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-        >
-          <form
-            {...{
-              [method]: actionPath,
-              "hx-on:htmx:after-request":
-                "if(event.detail.successful) this.closest('#event-modal').remove()",
-            }}
-            hx-target="#event-list"
-            hx-swap="outerHTML"
-            class="m-0"
+      <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-modal border border-slate-100 overflow-hidden transform translate-y-2 sm:scale-95 opacity-0 animate-[fadeInScale_0.2s_ease-out_forwards] max-h-[92vh] flex flex-col">
+        <div class="px-6 py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="text-[17px] font-bold text-slate-800">{title}</h3>
+          <button
+            type="button"
+            onclick="document.getElementById('event-modal').remove()"
+            class="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="sm:flex sm:items-start">
-                <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                  <h3
-                    class="text-xl leading-6 font-semibold text-gray-900"
-                    id="modal-title"
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form
+          {...{
+            [method]: actionPath,
+            "hx-on:htmx:after-request":
+              "if(event.detail.successful) this.closest('#event-modal').remove()",
+          }}
+          hx-target="#event-list"
+          hx-swap="outerHTML"
+          class="m-0 overflow-y-auto flex-1 flex flex-col"
+        >
+          <div class="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
+            {/* Title */}
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Event Title
+              </label>
+              <input
+                required
+                type="text"
+                name="title"
+                value={event?.title || ""}
+                class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl py-2.5 px-3.5 transition-all"
+                placeholder="e.g. Modern Web Development Class"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Description / Syllabus Details
+              </label>
+              <textarea
+                name="description"
+                rows={3}
+                class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl py-2.5 px-3.5 transition-all resize-none"
+                placeholder="What topics will be covered during this scheduled event..."
+              >
+                {event?.description || ""}
+              </textarea>
+            </div>
+
+            {/* Date & Time */}
+            <div class="grid grid-cols-2 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  {isEdit ? "Date" : "Start Date"}
+                </label>
+                <input
+                  required
+                  type="date"
+                  name="date"
+                  value={defaultDateStr}
+                  class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl py-2.5 px-3.5 transition-all"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Start Time
+                </label>
+                <input
+                  required
+                  type="time"
+                  name="time"
+                  value={defaultTimeStr}
+                  class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl py-2.5 px-3.5 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Duration & Meet Link */}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Duration (mins)
+                </label>
+                <input
+                  required
+                  type="number"
+                  name="durationMinutes"
+                  value={event?.durationMinutes || 60}
+                  class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl py-2.5 px-3.5 transition-all"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Virtual Link (Google Meet)
+                </label>
+                <input
+                  type="url"
+                  name="meetLink"
+                  value={event?.meetLink || ""}
+                  class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl py-2.5 px-3.5 transition-all"
+                  placeholder="https://meet.google.com/..."
+                />
+              </div>
+            </div>
+
+            {/* Target Batches */}
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Target Groups / Batches
+              </label>
+              <select
+                multiple
+                name="batchIds"
+                class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl p-3 h-28 bg-white transition-all"
+              >
+                {batches.map((b) => (
+                  <option
+                    value={b.id}
+                    selected={event?.batchIds?.includes(b.id)}
+                    class="py-1 px-2 rounded hover:bg-slate-50"
                   >
-                    {title}
-                  </h3>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              <p class="mt-1.5 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                💡 Hold Ctrl/Cmd to select multiple groups
+              </p>
+            </div>
 
-                  <div class="mt-6 space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700">
-                        Title
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        name="title"
-                        value={event?.title || ""}
-                        class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                        placeholder="Event Title"
-                      />
-                    </div>
+            {/* Recurrence Setup (Only for new events) */}
+            {!isEdit && (
+              <div class="border-t border-slate-100 pt-4 mt-2">
+                <div class="flex items-center justify-between mb-3">
+                  <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-600 block">Repeat Event Series</span>
+                    <span class="text-[10px] text-slate-400 font-medium">Create multiple instances over a date range</span>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="repeat"
+                      value="true"
+                      class="sr-only peer"
+                      onchange="document.getElementById('recurrence-fields').classList.toggle('hidden', !this.checked)"
+                    />
+                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+                  </label>
+                </div>
 
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700">
-                        Description
-                      </label>
-                      <textarea
-                        name="description"
-                        rows={3}
-                        class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                        placeholder="Event Description"
-                      >
-                        {event?.description || ""}
-                      </textarea>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700">
-                          Date
-                        </label>
-                        <input
-                          required
-                          type="date"
-                          name="date"
-                          value={defaultDateStr}
-                          class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                        />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700">
-                          Time
-                        </label>
-                        <input
-                          required
-                          type="time"
-                          name="time"
-                          value={defaultTimeStr}
-                          class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                        />
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700">
-                          Duration (mins)
-                        </label>
-                        <input
-                          required
-                          type="number"
-                          name="durationMinutes"
-                          value={event?.durationMinutes || 60}
-                          class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                        />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700">
-                          Meet Link
-                        </label>
-                        <input
-                          type="url"
-                          name="meetLink"
-                          value={event?.meetLink || ""}
-                          class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                          placeholder="https://..."
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700">
-                        Batches
-                      </label>
-                      <select
-                        multiple
-                        name="batchIds"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
-                      >
-                        {batches.map((b) => (
-                          <option
-                            value={b.id}
-                            selected={event?.batchIds?.includes(b.id)}
-                          >
-                            {b.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p class="mt-1 text-xs text-gray-500">
-                        Hold Ctrl/Cmd to select multiple
-                      </p>
-                    </div>
+                <div id="recurrence-fields" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 animate-[slideDown_0.2s_ease-out_forwards]">
+                  <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Repeat Frequency</label>
+                    <select
+                      name="repeatInterval"
+                      class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[13px] border border-slate-200 rounded-xl py-2 px-3 bg-white transition-all"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Repeat Until (End Date)</label>
+                    <input
+                      type="date"
+                      name="repeatUntil"
+                      class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[13px] border border-slate-200 rounded-xl py-2 px-3 transition-all"
+                    />
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-2xl border-t border-gray-100">
-              <button
-                {...{
-                  onclick:
-                    "setTimeout(() => this.closest('#event-modal').remove(), 200)",
-                }}
-                type="submit"
-                class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors"
-              >
-                Save Event
-              </button>
+            )}
+          </div>
+
+          <div class="bg-slate-50 px-5 sm:px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-3 flex-shrink-0">
+            {isEdit ? (
+              event.groupId ? (
+                <button
+                  type="button"
+                  hx-get={`/ui/events/delete-confirm/${event.id}?date=${defaultDateStr}`}
+                  hx-target="#modal-container"
+                  onclick="document.getElementById('event-modal').remove()"
+                  class="px-4 py-2.5 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-350 transition-colors cursor-pointer"
+                >
+                  Delete Event
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  hx-delete={`/ui/events/${event.id}?date=${defaultDateStr}`}
+                  hx-confirm="Are you sure you want to delete this event?"
+                  hx-target="#event-list"
+                  hx-swap="outerHTML"
+                  {...{
+                    "hx-on:htmx:after-request": "document.getElementById('event-modal').remove()",
+                  }}
+                  class="px-4 py-2.5 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-350 transition-colors cursor-pointer"
+                >
+                  Delete Event
+                </button>
+              )
+            ) : (
+              <div></div>
+            )}
+            <div class="flex items-center gap-3">
               <button
                 type="button"
-                {...{
-                  onclick: "document.getElementById('event-modal').remove()",
-                }}
-                class="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors"
+                onclick="document.getElementById('event-modal').remove()"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
+              <button
+                type="submit"
+                class="px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-md shadow-brand-500/10 transition-colors"
+              >
+                {isEdit ? "Save Changes" : "Schedule Event"}
+              </button>
             </div>
-          </form>
+          </div>
+        </form>
+      </div>
+
+      <style>{`
+        @keyframes fadeInScale {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// Custom Delete Confirm Modal Component
+const DeleteConfirmModal = ({ event, date }: { event: any; date: string }) => {
+  return (
+    <div
+      id="delete-confirm-modal"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/40 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-modal border border-slate-100 overflow-hidden transform translate-y-2 sm:scale-95 opacity-0 animate-[fadeInScale_0.2s_ease-out_forwards]">
+        <div class="px-6 py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="text-[17px] font-bold text-slate-800">Delete Repeating Event</h3>
+          <button
+            type="button"
+            onclick="document.getElementById('delete-confirm-modal').remove()"
+            class="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <p class="text-sm text-slate-600 leading-relaxed">
+            The event <strong class="text-slate-800">"{event.title}"</strong> is part of a repeated series. How would you like to proceed with deletion?
+          </p>
+        </div>
+
+        <div class="bg-slate-50 px-6 py-5 border-t border-slate-100 flex flex-col gap-2.5">
+          {/* Delete Instance */}
+          <button
+            hx-delete={`/ui/events/${event.id}?date=${date}&scope=instance`}
+            hx-target="#event-list"
+            hx-swap="outerHTML"
+            {...{
+              "hx-on:htmx:after-request": "document.getElementById('delete-confirm-modal').remove()",
+            }}
+            class="w-full px-4 py-2.5 rounded-xl text-[13px] font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-150 transition-colors text-center cursor-pointer"
+          >
+            Delete Just This Instance
+          </button>
+
+          {/* Delete Series */}
+          <button
+            hx-delete={`/ui/events/${event.id}?date=${date}&scope=series`}
+            hx-target="#event-list"
+            hx-swap="outerHTML"
+            {...{
+              "hx-on:htmx:after-request": "document.getElementById('delete-confirm-modal').remove()",
+            }}
+            class="w-full px-4 py-2.5 rounded-xl text-[13px] font-bold text-white bg-red-600 hover:bg-red-700 transition-colors text-center shadow-md shadow-red-500/10 cursor-pointer"
+          >
+            Delete Entire Repeated Series
+          </button>
+
+          {/* Cancel */}
+          <button
+            type="button"
+            onclick="document.getElementById('delete-confirm-modal').remove()"
+            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors text-center mt-1 cursor-pointer"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -289,37 +512,35 @@ eventsUi.get("/", async (c) => {
 
   return c.html(
     <Layout activePath="/ui/events">
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <label class="font-medium text-gray-700">Date:</label>
+      {/* Top Header Card */}
+      <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-premium mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-2 flex-wrap">
+          <label class="font-bold text-xs uppercase tracking-wider text-slate-400 whitespace-nowrap">Select Date:</label>
           <input
             type="date"
             name="date"
             value={dateStr}
-            class="focus:ring-blue-500 focus:border-blue-500 block shadow-sm sm:text-sm border-gray-300 rounded-lg py-2 px-3 border"
+            class="flex-1 min-w-0 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 font-semibold text-sm border border-slate-200 rounded-xl py-2 px-3 transition-all"
             hx-get="/ui/events/list"
             hx-target="#event-list"
             hx-swap="outerHTML"
           />
         </div>
+
         <button
           hx-get="/ui/events/form"
           hx-target="#modal-container"
           hx-vals="js:{date: document.querySelector('input[name=date]').value}"
-          class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-colors"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-bold text-white bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-md shadow-brand-500/15 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
         >
           <svg
-            class="-ml-1 mr-2 h-5 w-5"
+            class="h-5 w-5"
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
-            <path
-              fill-rule="evenodd"
-              d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-              clip-rule="evenodd"
-            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
           </svg>
           Create Event
         </button>
@@ -368,6 +589,17 @@ eventsUi.get("/form/:id", async (c) => {
   );
 });
 
+// HTMX Endpoint: Get Delete Confirmation popup
+eventsUi.get("/delete-confirm/:id", async (c) => {
+  const id = c.req.param("id");
+  const date = c.req.query("date") || formatDate(new Date());
+  const foundEvent = await eventRepository.findById(id);
+
+  if (!foundEvent) return c.text("Event not found", 404);
+
+  return c.html(<DeleteConfirmModal event={foundEvent} date={date} />);
+});
+
 // Helper to parse form data and return updated list
 const handleSave = async (c: any, id?: string) => {
   const body = await c.req.parseBody({ all: true });
@@ -400,7 +632,34 @@ const handleSave = async (c: any, id?: string) => {
   if (id) {
     await eventRepository.update(id, data, batchIds as string[]);
   } else {
-    await eventRepository.create(data as any, batchIds as string[]);
+    const isRepeat = body.repeat === "true" && body.repeatUntil;
+    if (isRepeat) {
+      const repeatUntilDate = new Date(`${body.repeatUntil}T23:59:59`);
+      const interval = body.repeatInterval || "daily";
+      const groupId = crypto.randomUUID();
+
+      const currentDate = new Date(scheduledAt);
+      while (currentDate <= repeatUntilDate) {
+        await eventRepository.create(
+          {
+            ...data,
+            scheduledAt: new Date(currentDate),
+            groupId,
+          },
+          batchIds as string[],
+        );
+
+        if (interval === "daily") {
+          currentDate.setDate(currentDate.getDate() + 1);
+        } else if (interval === "weekly") {
+          currentDate.setDate(currentDate.getDate() + 7);
+        } else {
+          break;
+        }
+      }
+    } else {
+      await eventRepository.create(data as any, batchIds as string[]);
+    }
   }
 
   // Return the updated list for that date
@@ -422,4 +681,28 @@ eventsUi.post("/", async (c) => {
 eventsUi.put("/:id", async (c) => {
   const id = c.req.param("id");
   return handleSave(c, id);
+});
+
+// HTMX Endpoint: Delete Event
+eventsUi.delete("/:id", async (c) => {
+  const id = c.req.param("id");
+  const dateStr = c.req.query("date") || formatDate(new Date());
+  const scope = c.req.query("scope") as string;
+
+  const foundEvent = await eventRepository.findById(id);
+  if (foundEvent) {
+    if (scope === "series" && foundEvent.groupId) {
+      await eventRepository.deleteEventSeries(foundEvent.groupId);
+    } else {
+      await eventRepository.deleteEventById(id);
+    }
+  }
+
+  const startOfDay = new Date(dateStr);
+  const endOfDay = new Date(dateStr);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const events = await eventRepository.all({ from: startOfDay, to: endOfDay });
+
+  return c.html(<EventList events={events} date={dateStr} />);
 });

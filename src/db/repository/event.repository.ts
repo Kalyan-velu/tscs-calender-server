@@ -1,6 +1,6 @@
-import { event, eventBatch, type NewEvent } from "../schema.js";
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
-import { db } from "../index.js";
+import { event, eventBatch, type NewEvent } from '../schema.js';
+import { and, eq, gte, inArray, lte } from 'drizzle-orm';
+import { db } from '../index.js';
 
 const withBatchIds = async <T extends { id: string }>(events: T[]) => {
   if (!events.length)
@@ -100,7 +100,7 @@ export const eventRepository = {
   },
   assignToBatches: async (eventId: string, batchIds: string[]) => {
     const foundEvent = await eventRepository.findById(eventId);
-    if (!foundEvent) throw new Error("Event not found.");
+    if (!foundEvent) throw new Error('Event not found.');
     const uniqueBatchIds = [...new Set(batchIds)];
     if (uniqueBatchIds.length) {
       await db
@@ -117,6 +117,9 @@ export const eventRepository = {
   },
   deleteEventById: async (id: string) => {
     return db.delete(event).where(eq(event.id, id));
+  },
+  deleteEventSeries: async (groupId: string) => {
+    return db.delete(event).where(eq(event.groupId, groupId));
   },
   update: async (id: string, data: Partial<NewEvent>, batchIds?: string[]) => {
     return db.transaction(async (tx) => {
