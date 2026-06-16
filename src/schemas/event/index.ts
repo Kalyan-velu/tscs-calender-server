@@ -9,6 +9,9 @@ export const EventSchema = z.object({
   scheduledAt: z.iso.datetime(),
   durationMinutes: z.number().int(),
   batchIds: z.array(z.uuid()),
+  groupId: z.string().uuid().nullable().optional(),
+  recurrencePattern: z.string().nullable().optional(),
+  recurrenceEndDate: z.iso.datetime().nullable().optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -20,7 +23,7 @@ export const CreateEventSchema = z.object({
   description: z.string().nullable().optional().openapi({
     example: 'Introduction class',
   }),
-  meetLink: z.string().nullable().optional().openapi({
+  meetLink: z.string().url().nullable().optional().openapi({
     example: 'https://meet.google.com/abc-defg-hij',
   }),
   scheduledAt: z.iso.datetime().openapi({
@@ -29,8 +32,14 @@ export const CreateEventSchema = z.object({
   durationMinutes: z.number().int().positive().openapi({
     example: 60,
   }),
-  batchIds: z.array(z.uuid()).openapi({
+  batchIds: z.array(z.uuid()).min(1).openapi({
     example: ['550e8400-e29b-41d4-a716-446655440000'],
+  }),
+  recurrencePattern: z.string().nullable().optional().openapi({
+    example: 'MON,WED,FRI',
+  }),
+  recurrenceEndDate: z.iso.datetime().nullable().optional().openapi({
+    example: '2026-06-30T23:59:59.000Z',
   }),
 });
 
@@ -41,6 +50,18 @@ export const AssignEventBatchesSchema = z.object({
     .openapi({
       example: ['550e8400-e29b-41d4-a716-446655440000'],
     }),
+});
+
+export const UpdateEventSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().nullable().optional(),
+  meetLink: z.string().url().nullable().optional(),
+  scheduledAt: z.iso.datetime().optional(),
+  durationMinutes: z.number().int().positive().optional(),
+  batchIds: z.array(z.uuid()).optional(),
+  recurrencePattern: z.string().nullable().optional(),
+  recurrenceEndDate: z.iso.datetime().nullable().optional(),
+  editScope: z.enum(['single', 'future']).optional(),
 });
 
 // Routes
@@ -77,6 +98,12 @@ export const deleteEventRequest = createRoute({
           in: 'path',
         },
         example: 'event-id',
+      }),
+    }),
+    query: z.object({
+      scope: z.enum(['instance', 'series']).optional().openapi({
+        description: 'Delete scope: delete only this instance, or the entire series.',
+        example: 'instance'
       }),
     }),
   },
@@ -132,6 +159,33 @@ export const getEventByIdRequest = createRoute({
     ...commonErrorResponses,
     200: {
       description: 'Event details',
+      content: {
+        'application/json': { schema: successSchema(EventSchema) },
+      },
+    },
+  },
+});
+
+export const updateEventRoute = createRoute({
+  method: 'put',
+  path: '/{eventId}',
+  tags: ['Events'],
+  request: {
+    params: z.object({
+      eventId: z.string().openapi({
+        param: { name: 'eventId', in: 'path' },
+        example: 'event-id',
+      }),
+    }),
+    body: {
+      content: { 'application/json': { schema: UpdateEventSchema } },
+      required: true,
+    },
+  },
+  responses: {
+    ...commonErrorResponses,
+    200: {
+      description: 'Event updated',
       content: {
         'application/json': { schema: successSchema(EventSchema) },
       },

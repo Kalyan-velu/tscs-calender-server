@@ -1,4 +1,3 @@
-// src/schemas/response.schema.ts
 import { z } from '@hono/zod-openapi';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 

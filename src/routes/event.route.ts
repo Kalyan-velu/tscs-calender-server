@@ -5,6 +5,7 @@ import {
   deleteEventRequest,
   getEventByIdRequest,
   listEventsRequest,
+  updateEventRoute,
 } from '../schemas/event/index.js';
 import { err, ok } from '../utils/respond.js';
 import { eventRepository } from '../db/repository/event.repository.js';
@@ -21,6 +22,8 @@ events.openapi(createEventRoute, async (c) => {
       scheduledAt,
       durationMinutes,
       batchIds,
+      recurrencePattern,
+      recurrenceEndDate,
     } = c.req.valid('json');
     const batches = await batchRepository.findByIds(batchIds);
 
@@ -35,6 +38,8 @@ events.openapi(createEventRoute, async (c) => {
         meetLink: meetLink ?? null,
         scheduledAt: new Date(scheduledAt),
         durationMinutes,
+        recurrencePattern: recurrencePattern ?? null,
+        recurrenceEndDate: recurrenceEndDate ? new Date(recurrenceEndDate) : null,
       },
       batchIds,
     );
@@ -93,16 +98,46 @@ events.openapi(getEventByIdRequest, async (c) => {
 events.openapi(deleteEventRequest, async (c) => {
   try {
     const { eventId } = c.req.valid('param');
+    const { scope } = c.req.valid('query');
     const foundEvent = await eventRepository.findById(eventId);
 
     if (!foundEvent) {
       return err(c, 'Event not found', 404);
     }
 
-    await eventRepository.deleteEventById(eventId);
+    if (scope === 'series' && foundEvent.groupId) {
+      await eventRepository.deleteEventSeries(foundEvent.groupId);
+    } else {
+      await eventRepository.deleteEventById(eventId);
+    }
     return ok(c, true);
   } catch (e) {
     return err(c, 'Failed to delete event', 500);
+  }
+});
+
+events.openapi(updateEventRoute, async (c) => {
+  try {
+    const { eventId } = c.req.valid('param');
+    const { batchIds, scheduledAt, recurrencePattern, recurrenceEndDate, editScope, ...rest } = c.req.valid('json');
+
+    const found = await eventRepository.findById(eventId);
+    if (!found) return err(c, 'Event not found', 404);
+
+    const data = {
+      ...rest,
+      ...(scheduledAt ? { scheduledAt: new Date(scheduledAt) } : {}),
+      ...(recurrencePattern !== undefined ? { recurrencePattern } : {}),
+      ...(recurrenceEndDate !== undefined ? { recurrenceEndDate: recurrenceEndDate ? new Date(recurrenceEndDate) : null } : {}),
+      editScope,
+    };
+
+    const updated = await eventRepository.update(eventId, data, batchIds);
+    if (!updated) return err(c, 'Event not found after update', 404);
+
+    return ok(c, updated);
+  } catch (e) {
+    return err(c, 'Failed to update event', 500);
   }
 });
 

@@ -1,7 +1,12 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
+import bcrypt from 'bcryptjs';
 import { studentRepository } from '../../db/repository/student.repository.js';
 import { batchRepository } from '../../db/repository/batch.repository.js';
 import { Layout } from './layouts/layout.ui.js';
+import type { Batch, Student, NewStudent } from '../../db/schema.js';
+
+type StudentWithBatch = Student & { batchName: string };
 
 export const studentsUi = new Hono();
 
@@ -15,7 +20,13 @@ const formatSimpleDate = (date: Date) => {
 };
 
 // Student List Component (Table view with actions)
-const StudentList = ({ students }: { students: any[] }) => {
+const StudentList = ({
+  students,
+  error,
+}: {
+  students: StudentWithBatch[];
+  error?: string;
+}) => {
   if (students.length === 0) {
     return (
       <div
@@ -46,10 +57,13 @@ const StudentList = ({ students }: { students: any[] }) => {
   }
 
   return (
-    <div
-      id="student-list"
-      class="mt-6 overflow-hidden bg-white border border-slate-100 rounded-2xl shadow-premium"
-    >
+    <div id="student-list">
+      {error && (
+        <div class="mb-4 p-3.5 bg-red-50 border border-red-100 rounded-xl text-sm font-semibold text-red-600">
+          {error}
+        </div>
+      )}
+      <div class="overflow-hidden bg-white border border-slate-100 rounded-2xl shadow-premium">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-left">
           <thead class="bg-slate-50/70">
@@ -166,6 +180,7 @@ const StudentList = ({ students }: { students: any[] }) => {
         </table>
       </div>
     </div>
+  </div>
   );
 };
 
@@ -174,8 +189,8 @@ const StudentModal = ({
   student,
   batches,
 }: {
-  student?: any;
-  batches: any[];
+  student?: Student;
+  batches: Batch[];
 }) => {
   const isEdit = !!student;
   const title = isEdit ? 'Edit Student Details' : 'Register Student';
@@ -288,6 +303,20 @@ const StudentModal = ({
                   </svg>
                 </div>
               </div>
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Password {isEdit ? '(leave blank to keep current)' : '(min 6 chars)'}
+              </label>
+              <input
+                required={!isEdit}
+                type="password"
+                name="password"
+                class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl py-2.5 px-3.5 transition-all"
+                placeholder={isEdit ? '••••••••' : 'Enter student password'}
+              />
             </div>
 
             {/* Push Token */}
@@ -409,20 +438,44 @@ studentsUi.get('/form/:id', async (c) => {
 });
 
 // Helper function to handle saving/updating student via form submit
-const handleStudentSave = async (c: any, id?: string) => {
+const handleStudentSave = async (c: Context, id?: string) => {
   const body = await c.req.parseBody();
 
-  const displayName = body.displayName as string;
-  const email = body.email as string;
+  const displayName = (body.displayName as string)?.trim();
+  const email = (body.email as string)?.trim();
   const batchId = body.batchId as string;
   const pushToken = body.pushToken as string;
+  const password = (body.password as string)?.trim();
 
-  const data = {
+  if (!displayName || displayName.length === 0) {
+    const students = await studentRepository.allStudents();
+    return c.html(<StudentList students={students} error="Full name is required." />);
+  }
+  if (!email || !email.includes('@')) {
+    const students = await studentRepository.allStudents();
+    return c.html(<StudentList students={students} error="A valid email address is required." />);
+  }
+
+  // Validate password
+  if (!id && (!password || password.length < 6)) {
+    const students = await studentRepository.allStudents();
+    return c.html(<StudentList students={students} error="Password of at least 6 characters is required for new students." />);
+  }
+  if (password && password.length > 0 && password.length < 6) {
+    const students = await studentRepository.allStudents();
+    return c.html(<StudentList students={students} error="Password must be at least 6 characters." />);
+  }
+
+  const data: NewStudent = {
     displayName,
     email,
     batchId: batchId || null,
     pushToken: pushToken || null,
   };
+
+  if (password && password.length > 0) {
+    data.passwordHash = await bcrypt.hash(password, 10);
+  }
 
   try {
     if (id) {
@@ -430,10 +483,16 @@ const handleStudentSave = async (c: any, id?: string) => {
     } else {
       await studentRepository.create(data);
     }
-  } catch (e: any) {
-    // Return error message inside the list container or toast-like alert if needed.
-    // For simple UI, we print the error or proceed
+  } catch (e) {
     console.error('Save student error:', e);
+    const msg = e instanceof Error ? e.message : '';
+    const code = (e as { code?: string }).code;
+    const errorMsg =
+      code === '23505' || msg.includes('unique')
+        ? 'A student with this email already exists.'
+        : 'Failed to save student. Please try again.';
+    const students = await studentRepository.allStudents();
+    return c.html(<StudentList students={students} error={errorMsg} />);
   }
 
   const students = await studentRepository.allStudents();

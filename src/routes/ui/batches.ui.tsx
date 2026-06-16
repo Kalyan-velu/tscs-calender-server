@@ -2,7 +2,8 @@ import {Hono} from 'hono';
 import {getCookie} from 'hono/cookie';
 import {batchRepository} from '../../db/repository/batch.repository.js';
 import {eventRepository} from '../../db/repository/event.repository.js';
-import {getSessionToken} from '../../utils/auth.js';
+import {studentRepository} from '../../db/repository/student.repository.js';
+import {getSessionToken, verifyStudentToken} from '../../utils/auth.js';
 import {BaseLayout, Layout} from './layouts/layout.ui.js';
 
 export const batchesUi = new Hono();
@@ -121,6 +122,7 @@ const BatchList = ({ batches }: { batches: any[] }) => {
               Weekly Schedule
             </a>
             <button
+              type={'button'}
               onclick={`const url = window.location.origin + '/ui/batches/${batch.id}/events'; navigator.clipboard.writeText(url); const btn = this; const orig = btn.innerHTML; btn.innerHTML = '<svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Copied!'; btn.classList.add('text-emerald-600'); setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('text-emerald-600') }, 2000);`}
               class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-brand-600 transition-colors"
             >
@@ -232,10 +234,51 @@ batchesUi.get('/:batchId/events', async (c) => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
 
-  const isLoggedIn = getCookie(c, 'admin_session') === getSessionToken();
+  const adminSession = getCookie(c, 'admin_session');
+  const isAdmin = adminSession === getSessionToken();
+
+  let studentName = '';
+  const studentSession = getCookie(c, 'student_session');
+  if (studentSession) {
+    const verified = verifyStudentToken(studentSession);
+    if (verified) {
+      const student = await studentRepository.findById(verified.studentId);
+      if (student) {
+        studentName = student.displayName;
+      }
+    }
+  }
 
   return c.html(
     <PreviewLayout title={`${batch.name} - Weekly Schedule`}>
+      {/* Student/Admin Nav Header */}
+      <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_4px_20px_-4px_rgba(66,88,255,0.04)]">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-sm">
+            {isAdmin ? 'A' : (studentName ? studentName.charAt(0).toUpperCase() : 'S')}
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 font-medium">Logged in as {isAdmin ? 'Administrator' : 'Student'}</p>
+            <p class="text-sm font-bold text-slate-800">{isAdmin ? 'Admin' : (studentName || 'Student')}</p>
+          </div>
+        </div>
+        {isAdmin ? (
+          <a
+            href="/ui/batches"
+            class="text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3.5 py-2 rounded-xl transition-all"
+          >
+            Back to Dashboard
+          </a>
+        ) : (
+          <a
+            href="/ui/lookup/logout"
+            class="text-xs font-bold text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 px-3.5 py-2 rounded-xl transition-all"
+          >
+            Sign Out
+          </a>
+        )}
+      </div>
+
       <div class="bg-white rounded-3xl shadow-[0_15px_40px_-15px_rgba(66,88,255,0.08)] border border-slate-100 overflow-hidden">
         {/* Prev / Current / Next Controls */}
         <div class="bg-slate-50 px-4 sm:px-8 py-3 sm:py-3.5 border-b border-slate-150 flex justify-between items-center gap-2 sm:gap-4 flex-wrap">
@@ -335,6 +378,7 @@ batchesUi.get('/:batchId/events', async (c) => {
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
+                              <title>No Title</title>
                               <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"

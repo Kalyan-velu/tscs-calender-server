@@ -8,6 +8,8 @@
 	"scripts": {
 		"dev": "tsx watch src/index.ts",
 		"build": "tsc",
+		"dev:css": "tailwindcss -i ./src/styles/app.css -o ./public/app.css --watch",
+		"build:css": "tailwindcss -i ./src/styles/app.css -o ./public/app.css --minify",
 		"start": "node dist/src/index.js",
 		"migrate": "pnpm exec drizzle-kit migrate",
 		"generate": "pnpm exec drizzle-kit generate",
@@ -21,30 +23,31 @@
 		"@hono/swagger-ui": "^0.6.1",
 		"@hono/zod-openapi": "^1.4.0",
 		"@hono/zod-validator": "^0.8.0",
+		"bcryptjs": "^2.4.3",
 		"date-fns": "^4.1.0",
 		"dotenv": "^17.4.2",
 		"drizzle-orm": "^0.45.2",
+		"firebase-admin": "^13.10.0",
 		"hono": "^4.12.18",
-		"is-deflate": "^1.0.0",
-		"is-gzip": "^2.0.0",
-		"pako": "^2.1.0",
+		"hono-rate-limiter": "^0.5.3",
 		"pg": "^8.20.0",
+		"redis": "^6.0.0",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.15",
-		"@types/is-deflate": "^1.0.0",
-		"@types/is-gzip": "^2.0.2",
+		"@tailwindcss/cli": "^4.3.0",
+		"@types/bcryptjs": "^2.4.6",
 		"@types/node": "^20.11.17",
-		"@types/pako": "^2.0.4",
 		"@types/pg": "^8.20.0",
 		"drizzle-kit": "^0.31.10",
+		"tailwindcss": "^4.3.0",
 		"tsx": "^4.7.1",
 		"typed-htmx": "^0.3.1",
-		"typescript": "^5.8.3"
+		"typescript": "^6.0.3"
 	},
 	"engines": {
-		"node": "24.13.0"
+		"node": ">=24.0.0"
 	},
 	"packageManager": "pnpm@11.1.1"
 }

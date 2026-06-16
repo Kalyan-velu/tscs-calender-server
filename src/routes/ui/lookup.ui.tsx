@@ -1,6 +1,9 @@
-import {Hono} from 'hono';
-import {studentRepository} from '../../db/repository/student.repository.js';
-import {BaseLayout} from './layouts/layout.ui.js';
+import { Hono } from 'hono';
+import { setCookie, deleteCookie } from 'hono/cookie';
+import bcrypt from 'bcryptjs';
+import { studentRepository } from '../../db/repository/student.repository.js';
+import { createStudentToken } from '../../utils/auth.js';
+import { BaseLayout } from './layouts/layout.ui.js';
 
 export const lookupUi = new Hono();
 
@@ -94,11 +97,23 @@ const LookupForm = ({ email }: { email?: string }) => (
         placeholder="student@example.com"
       />
     </div>
+    <div>
+      <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+        Password
+      </label>
+      <input
+        required
+        type="password"
+        name="password"
+        class="w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none text-slate-800 text-[14px] border border-slate-200 rounded-xl py-2.5 px-3.5 transition-all"
+        placeholder="••••••••"
+      />
+    </div>
     <button
       type="submit"
       class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold text-white bg-brand-600 hover:bg-brand-700 active:bg-brand-800 shadow-md shadow-brand-500/15 transition-all duration-200 cursor-pointer"
     >
-      Look Up Schedule
+      Sign In & View Schedule
     </button>
   </form>
 );
@@ -114,20 +129,30 @@ lookupUi.get('/', async (c) => {
 lookupUi.post('/', async (c) => {
   const body = await c.req.parseBody();
   const email = body.email as string;
+  const password = body.password as string;
 
-  if (!email) {
+  if (!email || !password) {
     return c.html(
-      <LookupLayout error="Please enter a valid email.">
-        <LookupForm />
+      <LookupLayout error="Please enter a valid email and password.">
+        <LookupForm email={email} />
       </LookupLayout>,
     );
   }
 
   const student = await studentRepository.findByEmail(email);
 
-  if (!student) {
+  if (!student || !student.passwordHash) {
     return c.html(
-      <LookupLayout error="No student record found with this email. Please check spelling or contact your batch coordinator.">
+      <LookupLayout error="Invalid email or password. Please verify credentials.">
+        <LookupForm email={email} />
+      </LookupLayout>,
+    );
+  }
+
+  const passwordMatch = await bcrypt.compare(password, student.passwordHash);
+  if (!passwordMatch) {
+    return c.html(
+      <LookupLayout error="Invalid email or password. Please verify credentials.">
         <LookupForm email={email} />
       </LookupLayout>,
     );
@@ -143,5 +168,19 @@ lookupUi.post('/', async (c) => {
     );
   }
 
+  // Set student session cookie
+  const token = createStudentToken(student.id, student.batchId);
+  setCookie(c, 'student_session', token, {
+    path: '/',
+    httpOnly: true,
+    secure: false, // Set true in production if running HTTPS
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  });
+
   return c.redirect(`/ui/batches/${student.batchId}/events`);
+});
+
+lookupUi.get('/logout', async (c) => {
+  deleteCookie(c, 'student_session');
+  return c.redirect('/ui/lookup');
 });

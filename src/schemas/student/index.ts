@@ -17,6 +17,11 @@ export const StudentWithBatchNameSchema = StudentSchema.extend({
 export const CreateStudentSchema = z.object({
   displayName: z.string().openapi({ example: 'John Doe' }),
   email: z.string().email().openapi({ example: 'john.doe@example.com' }),
+  password: z
+    .string()
+    .min(6)
+    .optional()
+    .openapi({ example: 'password123' }),
   batchId: z
     .string()
     .uuid()
@@ -150,6 +155,37 @@ export const updateStudentRequest = createRoute({
       description: 'Student updated',
       content: {
         'application/json': { schema: successSchema(StudentSchema) },
+      },
+    },
+  },
+});
+
+export const StudentLoginSchema = z.object({
+  email: z.string().email().openapi({ example: 'student@example.com' }),
+  password: z.string().openapi({ example: 'password123' }),
+});
+
+export const StudentLoginResponseSchema = z.object({
+  token: z.string(),
+  student: StudentSchema,
+});
+
+export const studentLoginRoute = createRoute({
+  method: 'post',
+  tags: ['Students'],
+  path: '/login',
+  request: {
+    body: {
+      content: { 'application/json': { schema: StudentLoginSchema } },
+      required: true,
+    },
+  },
+  responses: {
+    ...commonErrorResponses,
+    200: {
+      description: 'Login successful',
+      content: {
+        'application/json': { schema: successSchema(StudentLoginResponseSchema) },
       },
     },
   },
