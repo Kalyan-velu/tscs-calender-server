@@ -1,0 +1,1 @@
+ALTER TABLE "student" ADD COLUMN "password_hash" text;
