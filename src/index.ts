@@ -4,7 +4,6 @@ import { swaggerUI } from '@hono/swagger-ui';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { rateLimiter, RedisStore } from 'hono-rate-limiter';
 import { redis } from './cache/redis.js';
 import { pool } from './db/index.js';
 import { Batches } from './routes/batch.route.js';
@@ -16,30 +15,19 @@ import { eventsUi } from './routes/ui/events.ui.js';
 import { lookupUi } from './routes/ui/lookup.ui.js';
 import { studentsUi } from './routes/ui/students.ui.js';
 import { authMiddleware } from './utils/auth.js';
+import { slidingWindowRateLimiter } from './utils/rateLimiter.js';
 import { startScheduler } from './utils/scheduler.js';
 
 const app = new OpenAPIHono();
 await redis.connect();
 
 app.use(
-  rateLimiter({
+  '*',
+  slidingWindowRateLimiter({
     windowMs: 60 * 1000,
-    limit: 60,
-    keyGenerator: (c) => c.req.header('x-forwarded-for') ?? '',
-    store: new RedisStore({
-      client: redis,
-      prefix: 'hrl:',
-      resetExpiryOnChange: true,
-    }),
-    handler: (c) => {
-      return c.json(
-        {
-          error: 'Rate limit exceeded',
-          retryAfter: c.res.headers.get('Retry-After'),
-        },
-        429,
-      );
-    },
+    limit: 30,
+    keyGenerator: (c) =>
+      c.req.header('x-forwarded-for') ?? c.req.header('x-real-ip') ?? 'unknown',
   }),
 );
 

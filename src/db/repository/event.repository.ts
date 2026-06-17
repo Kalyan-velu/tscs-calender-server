@@ -1,15 +1,10 @@
 import crypto from 'node:crypto';
-import { and, eq, gte, inArray, lte, type SQL } from 'drizzle-orm';
-import type { EventWithBatchIds } from '../../routes/ui/events.ui.js';
-import {
-  getCached,
-  invalidate,
-  invalidatePattern,
-  setCached,
-} from '../../utils/cache.js';
-import { generateOccurrences } from '../../utils/recurrence.js';
-import { db } from '../index.js';
-import { batch, event, eventBatch, type NewEvent } from '../schema.js';
+import {and, eq, gte, inArray, lte, type SQL} from 'drizzle-orm';
+import type {EventWithBatchIds} from '../../routes/ui/events.ui.js';
+import {getCached, invalidate, invalidatePattern, setCached,} from '../../utils/cache.js';
+import {generateOccurrences} from '../../utils/recurrence.js';
+import {db} from '../index.js';
+import {batch, event, eventBatch, type NewEvent} from '../schema.js';
 
 /** Joins batch assignments onto an array of events in a single batched query. */
 const withBatchIds = async <T extends { id: string }>(
@@ -85,7 +80,7 @@ const getGroupBatchIds = async (groupId: string): Promise<string[]> => {
  * Invalidates all `events:batch:{id}:*` cache entries for the given batch IDs in parallel.
  * @param batchIds - Batch IDs whose event caches should be cleared.
  */
-const invalidateBatchEventCaches = (batchIds: string[]): Promise<void> =>
+const invalidateBatchEventCaches = (batchIds: string[]): Promise<Awaited<void>[]> =>
   Promise.all(batchIds.map((id) => invalidatePattern(`events:batch:${id}:*`)));
 
 export const eventRepository = {
